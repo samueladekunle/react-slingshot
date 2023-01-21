@@ -1,0 +1,52 @@
+version: 2.1
+
+docker-image: &docker-image
+  docker:
+    - image: circleci/node:13.8.0
+
+jobs:
+  build:
+    <<: *docker-image
+    steps:
+      - checkout
+      - run:
+          name: "Install npm packages"
+          command: npm i
+      - run:
+          name: "Lint code"
+          command: npm run lint
+      - save_cache:
+          paths:
+            - src/node_modules
+          key: "node-modules"
+  test:
+    <<: *docker-image
+    steps:
+      - checkout
+      - restore_cache:
+          key: "node-modules"
+      - run:
+          name: "Tests"
+          command: |
+            npm i
+            npm run test
+  analyze:
+    <<: *docker-image
+    steps:
+      - checkout
+      - restore_cache:
+          key: "node-modules"
+      - run:
+          name: "Analyze"
+          command: npm audit
+
+workflows:
+  build-test-analyze:
+    jobs:
+      - build
+      - test:
+          requires:
+            - build
+      - analyze:
+          requires:
+            - test
